@@ -1,0 +1,41 @@
+<resources>
+    <string name="app_name">AndroidTestApplication</string>
+    <attr name="lineSize" format="float"/>
+    √<attr name="lineColor" format="color"/>
+    <!-- 自定义进度条.雄迈摄像机视频回放界面显示回放进度 -->
+    <declare-styleable name="CustomHorizontalProgressView">
+        <!-- 线条粗细大小 -->
+        <attr name="lineSize"/>
+        <!-- 默认线条颜色 -->
+        <attr name="lineColor"/>
+        <!-- 已拖动的线条颜色 -->
+        <attr name="dragedLineColor" format="color"/>
+        <!-- 滑块半径 -->
+        <attr name="slidingBlockRadius" format="float"/>
+        <!-- 滑块背景 -->
+        <attr name="slidingBlockColor" format="color"/>
+    </declare-styleable>
+    <!-- 雄迈摄像机时间轴控件 -->
+    <declare-styleable name="XMTimeLineView">
+        <!-- 描述时间线粗细的属性(单位：dp) -->
+        <attr name="lineSize"/>
+        <!-- 线的颜色 -->
+        <attr name="lineColor"/>
+        <!-- 一个小格子的宽度 -->
+        <attr name="tinySpace" format="integer"/>
+        <!-- 长竖线长度 -->
+        <attr name="longVerticalLineLength" format="float"/>
+        <!-- 短竖线长度 -->
+        <attr name="shortVerticalLineLength" format="float"/>
+        <!-- 每一小格表示多长时间(单位：分钟) -->
+        <attr name="unitTimeLength" format="integer"/>
+        <!-- 几个小格连成一个大格 -->
+        <attr name="unitSize" format="integer"/>
+        <!-- 指示器线条粗细(单位：dp) -->
+        <attr name="indicatorLineSize" format="float"/>
+        <!-- 指示器端点圆块儿半径 -->
+        <attr name="indicatorRadius" format="float"/>
+        <!--指示器线条颜色 -->
+        <attr name="indicatorLineColor" format="color"/>
+    </declare-styleable>
+</resources>

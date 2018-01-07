@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="com.paiai.android.test.MainActivity"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:background="@android:color/black">
+        <com.paiai.android.test.CustomHorizontalProgressView
+            android:id="@+id/customHorizontalProgressView"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            app:lineSize="1"
+            app:lineColor="#9b9b9b"
+            app:dragedLineColor="#dcbc94"
+            app:slidingBlockColor="#ffffff"
+            app:slidingBlockRadius="23"
+            android:layout_gravity="center_vertical"/>
+    </LinearLayout>
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="44dp"
+        android:onClick="onLeftScrollClick">
+        <TextView
+            android:layout_width="300dp"
+            android:layout_height="match_parent"
+            android:background="@color/colorAccent"
+            android:text="点击左滑"
+            android:gravity="center_vertical" />
+        <TextView
+            android:layout_width="300dp"
+            android:layout_height="match_parent"
+            android:background="@android:color/black"/>
+        <TextView
+            android:layout_width="300dp"
+            android:layout_height="match_parent"
+            android:background="@android:color/holo_green_dark"/>
+    </LinearLayout>
+</LinearLayout>

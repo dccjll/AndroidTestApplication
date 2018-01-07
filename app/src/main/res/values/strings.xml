@@ -31,11 +31,15 @@
         <attr name="unitTimeLength" format="integer"/>
         <!-- 几个小格连成一个大格 -->
         <attr name="unitSize" format="integer"/>
-        <!-- 指示器线条粗细(单位：dp) -->
-        <attr name="indicatorLineSize" format="float"/>
-        <!-- 指示器端点圆块儿半径 -->
-        <attr name="indicatorRadius" format="float"/>
-        <!--指示器线条颜色 -->
-        <attr name="indicatorLineColor" format="color"/>
+        <!--&lt;!&ndash; 指示器线条粗细(单位：dp) &ndash;&gt;-->
+        <!--<attr name="indicatorLineSize" format="float"/>-->
+        <!--&lt;!&ndash; 指示器端点圆块儿半径 &ndash;&gt;-->
+        <!--<attr name="indicatorRadius" format="float"/>-->
+        <!--&lt;!&ndash;指示器线条颜色 &ndash;&gt;-->
+        <!--<attr name="indicatorLineColor" format="color"/>-->
+        <!-- 字体大小 -->
+        <attr name="timeFontSize" format="float"/>
+        <!-- 字体颜色 -->
+        <attr name="timeFontColor" format="color"/>
     </declare-styleable>
 </resources>

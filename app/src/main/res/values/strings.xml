@@ -31,15 +31,19 @@
         <attr name="unitTimeLength" format="integer"/>
         <!-- 几个小格连成一个大格 -->
         <attr name="unitSize" format="integer"/>
-        <!--&lt;!&ndash; 指示器线条粗细(单位：dp) &ndash;&gt;-->
-        <!--<attr name="indicatorLineSize" format="float"/>-->
-        <!--&lt;!&ndash; 指示器端点圆块儿半径 &ndash;&gt;-->
-        <!--<attr name="indicatorRadius" format="float"/>-->
-        <!--&lt;!&ndash;指示器线条颜色 &ndash;&gt;-->
-        <!--<attr name="indicatorLineColor" format="color"/>-->
-        <!-- 字体大小 -->
+        <!-- 时间字体大小 -->
         <attr name="timeFontSize" format="float"/>
-        <!-- 字体颜色 -->
+        <!-- 时间字体颜色 -->
         <attr name="timeFontColor" format="color"/>
+        <!-- 时间距离标尺的垂直距离 -->
+        <attr name="verticalSpaceSize" format="float"/>
+        <!-- 视频回放指示器图片的资源ID -->
+        <attr name="pointerImgResID" format="integer"/>
+        <!-- 无录像的背景颜色 -->
+        <attr name="noVideoBgColor" format="color"/>
+        <!-- 普通录像的背景颜色 -->
+        <attr name="commmonVideoBgColor" format="color"/>
+        <!-- 报警录像的背景颜色 -->
+        <attr name="alarmVideoBgColor" format="color"/>
     </declare-styleable>
 </resources>

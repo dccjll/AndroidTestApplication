@@ -3,6 +3,7 @@ package com.paiai.android.test;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
@@ -101,8 +102,9 @@ public class XMTimeLineView extends HorizontalScrollView {
         //主面板画笔
         mainBlockPaint = new Paint();
         mainBlockPaint.setAntiAlias(true);
-        mainBlockPaint.setColor(noVideoBgColor);
-        mainBlockPaint.setStyle(Paint.Style.FILL);
+        mainBlockPaint.setColor(alarmVideoBgColor);
+        mainBlockPaint.setStyle(Paint.Style.STROKE);
+        mainBlockPaint.setStrokeWidth(10);
     }
 
     /**
@@ -166,15 +168,20 @@ public class XMTimeLineView extends HorizontalScrollView {
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-        int mHight = MeasureSpec.getSize(heightMeasureSpec);
+        int mHeight = MeasureSpec.getSize(heightMeasureSpec);
         //计算主面板高度
-        computeMainBlockHeight(mHight);
+        computeMainBlockHeight(mHeight);
+        setMeasuredDimension((int) mainBlockWidth, mHeight);
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
+        int screenWidth = SystemUtils.getScreenWidth(getContext()).getWidth();
+        canvas.drawColor(Color.WHITE);
         //画时间线主面板
-        canvas.drawRect(getLeft(), getTop(), getLeft() + mainBlockWidth, getTop() + mainBlockHight, mainBlockPaint);
+        int halfLength = (int) (mainBlockWidth - screenWidth) /2;
+//        canvas.drawRect(getLeft()-halfLength, getTop(), getLeft() + screenWidth + halfLength, getTop() + mainBlockHight, mainBlockPaint);
+        canvas.drawRect(100, 100, 800, 800, mainBlockPaint);
     }
 }

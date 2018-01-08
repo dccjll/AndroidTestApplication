@@ -4,46 +4,65 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="com.paiai.android.test.MainActivity"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    tools:context="com.paiai.android.test.MainActivity">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="44dp"
-        android:background="@android:color/black">
-        <com.paiai.android.test.CustomHorizontalProgressView
-            android:id="@+id/customHorizontalProgressView"
-            android:layout_width="match_parent"
-            android:layout_height="44dp"
-            app:lineSize="1"
-            app:lineColor="#9b9b9b"
-            app:dragedLineColor="#dcbc94"
-            app:slidingBlockColor="#ffffff"
-            app:slidingBlockRadius="23"
-            android:layout_gravity="center_vertical"/>
-    </LinearLayout>
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="44dp"
-        android:onClick="onLeftScrollClick">
-        <TextView
-            android:layout_width="300dp"
-            android:layout_height="match_parent"
-            android:background="@color/colorAccent"
-            android:text="点击左滑"
-            android:gravity="center_vertical" />
-        <TextView
-            android:layout_width="300dp"
-            android:layout_height="match_parent"
-            android:background="@android:color/black"/>
-        <TextView
-            android:layout_width="300dp"
-            android:layout_height="match_parent"
-            android:background="@android:color/holo_green_dark"/>
-    </LinearLayout>
+    <!--<LinearLayout-->
+        <!--android:layout_width="match_parent"-->
+        <!--android:layout_height="44dp"-->
+        <!--android:background="@android:color/black">-->
+
+        <!--<com.paiai.android.test.CustomHorizontalProgressView-->
+            <!--android:id="@+id/customHorizontalProgressView"-->
+            <!--android:layout_width="match_parent"-->
+            <!--android:layout_height="44dp"-->
+            <!--android:layout_gravity="center_vertical"-->
+            <!--app:dragedLineColor="#dcbc94"-->
+            <!--app:lineColor="#9b9b9b"-->
+            <!--app:lineSize="1"-->
+            <!--app:slidingBlockColor="#ffffff"-->
+            <!--app:slidingBlockRadius="23" />-->
+    <!--</LinearLayout>-->
+
+    <!--<LinearLayout-->
+        <!--android:layout_width="wrap_content"-->
+        <!--android:layout_height="44dp"-->
+        <!--android:onClick="onLeftScrollClick">-->
+
+        <!--<TextView-->
+            <!--android:layout_width="300dp"-->
+            <!--android:layout_height="match_parent"-->
+            <!--android:background="@color/colorAccent"-->
+            <!--android:gravity="center_vertical"-->
+            <!--android:text="点击左滑" />-->
+
+        <!--<TextView-->
+            <!--android:layout_width="300dp"-->
+            <!--android:layout_height="match_parent"-->
+            <!--android:background="@android:color/black" />-->
+
+        <!--<TextView-->
+            <!--android:layout_width="300dp"-->
+            <!--android:layout_height="match_parent"-->
+            <!--android:background="@android:color/holo_green_dark" />-->
+    <!--</LinearLayout>-->
+
     <com.paiai.android.test.XMTimeLineView
-        android:layout_width="match_parent"
+        android:layout_marginTop="100dp"
+        android:layout_width="wrap_content"
         android:layout_height="88dp"
-        android:background="@android:color/holo_green_light">
-    </com.paiai.android.test.XMTimeLineView>
+        app:alarmVideoBgColor="#FF7345"
+        app:commmonVideoBgColor="#FFCFBE"
+        app:lineColor="#9B9B9B"
+        app:lineSize="0.5"
+        app:longVerticalLineLength="10"
+        app:noVideoBgColor="#E7E7E7"
+        app:pointerImgResID="@mipmap/video_playback_pointer"
+        app:shortVerticalLineLength="5"
+        app:timeFontColor="#333333"
+        app:timeFontSize="9"
+        app:tinySpace="10"
+        app:unitSize="6"
+        app:unitTimeLength="10"
+        app:verticalSpaceSize="3.5" />
 </LinearLayout>

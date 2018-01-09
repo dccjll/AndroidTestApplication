@@ -50,19 +50,23 @@
     <com.paiai.android.test.XMTimeLineView
         android:layout_marginTop="100dp"
         android:layout_width="wrap_content"
-        android:layout_height="88dp"
-        app:alarmVideoBgColor="#FF7345"
-        app:commmonVideoBgColor="#FFCFBE"
-        app:lineColor="#9B9B9B"
+        android:layout_height="400dp"
+        app:alarmVideoBgColor="#FFFF7345"
+        app:commmonVideoBgColor="#FFFFCFBE"
+        app:lineColor="#FF9B9B9B"
         app:lineSize="0.5"
         app:longVerticalLineLength="10"
         app:noVideoBgColor="#E7E7E7"
         app:pointerImgResID="@mipmap/video_playback_pointer"
         app:shortVerticalLineLength="5"
-        app:timeFontColor="#333333"
+        app:timeFontColor="#FF333333"
         app:timeFontSize="9"
         app:tinySpace="10"
         app:unitSize="6"
         app:unitTimeLength="10"
-        app:verticalSpaceSize="3.5" />
+        app:verticalSpaceSize="14" />
+    <!--<com.paiai.android.test.TestView-->
+        <!--android:layout_marginTop="100dp"-->
+        <!--android:layout_width="match_parent"-->
+        <!--android:layout_height="300dp"/>-->
 </LinearLayout>

@@ -2,9 +2,11 @@ package com.paiai.android.test;
 
 import android.content.Context;
 import android.content.res.TypedArray;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.drawable.BitmapDrawable;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
 import android.widget.HorizontalScrollView;
@@ -22,7 +24,7 @@ public class XMTimeLineView extends HorizontalScrollView {
     //描述时间线粗细的属性(单位：dp)
     private float lineSize = 0.5f;
     //线的颜色
-    private int lineColor = 0x9B9B9B;
+    private int lineColor = 0xFF9B9B9B;
     //一个小格子的宽度
     private int tinySpace = 10;
     //长竖线长度
@@ -36,34 +38,54 @@ public class XMTimeLineView extends HorizontalScrollView {
     //时间字体大小
     private float timeFontSize = 9;
     //时间字体颜色
-    private int timeFontColor = 0x333333;
+    private int timeFontColor = 0xFF333333;
     //时间距离标尺的垂直距离
     private float verticalSpaceSize = 3.5f;
     //视频回放指示器图片的资源ID
     private int pointerImgResID = R.mipmap.video_playback_pointer;
     //无录像的背景颜色
-    private int noVideoBgColor = 0xE7E7E7;
+    private int noVideoBgColor = 0xFFE7E7E7;
     //普通录像的背景颜色
-    private int commmonVideoBgColor = 0xFFCFBE;
+    private int commmonVideoBgColor = 0xFFFFCFBE;
     //报警录像的背景颜色
-    private int alarmVideoBgColor = 0xFF7345;
+    private int alarmVideoBgColor = 0xFFFF7345;
 
+    //控件宽度
+    private float mWidth;
+    //控件高度
+    private float mHeight;
+    //控件最小高度
+    private float minHeight;
+    //指定高度与需要的最新高度之间的差值
+    private float halfHeightPlus;
     //录像背景的主面板高度
-    private int mainBlockHight;
+    private int mainBlockHeight;
     //录像背景的主面板宽度
     private float mainBlockWidth;
-
-    //总的时间线
-    private VideoTimeLine totalVideoTimeLine;
+    //一天有多少分钟
+    private static final long totalMunite = 24 * 60;
+    //时间信息列表
+    private List<String> timeList = new ArrayList<>();
     //普通录像的时间轴列表
     private List<VideoTimeLine> commonVideoTimeLineList = new ArrayList<>();
     //报警录像的时间轴列表
     private List<VideoTimeLine> alarmVideoTimeLineList = new ArrayList<>();
-
+    //屏幕宽度
+    private int screenWidth;
     //小格子的总数量
     private int totalSmallGridNum;
+    //大格子的总数量
+    private int totalBigGridNum;
     //主面板画笔
     private Paint mainBlockPaint;
+    //画线的画笔
+    private Paint linePaint;
+    //时间文字画笔
+    private Paint fontPaint;
+    //画指示器图片的画笔
+    private Paint pointPaint;
+    //指示器图片
+    private Bitmap pointBitmap;
 
     public XMTimeLineView(Context context) {
         this(context, null);
@@ -71,58 +93,187 @@ public class XMTimeLineView extends HorizontalScrollView {
 
     public XMTimeLineView(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
+        //加载属性
+        loadAttibute(context, attrs);
+        //加载画笔
+        loadPaint();
+        //加载参数
+        loadParams();
+        //响应点击
+        setClickable(true);
+    }
+
+    /**
+     * 加载自定义属性
+     */
+    private void loadAttibute(Context context, @Nullable AttributeSet attrs) {
         TypedArray typedArray = context.obtainStyledAttributes(attrs, R.styleable.XMTimeLineView);
         lineSize = DensityUtils.dp2px(getContext(), typedArray.getFloat(R.styleable.XMTimeLineView_lineSize, lineSize));
         lineColor = typedArray.getColor(R.styleable.XMTimeLineView_lineColor, lineColor);
         tinySpace = DensityUtils.dp2px(getContext(), typedArray.getInt(R.styleable.XMTimeLineView_tinySpace, tinySpace));
         longVerticalLineLength = DensityUtils.dp2px(getContext(), typedArray.getFloat(R.styleable.XMTimeLineView_longVerticalLineLength, longVerticalLineLength));
         shortVerticalLineLength = DensityUtils.dp2px(getContext(), typedArray.getFloat(R.styleable.XMTimeLineView_shortVerticalLineLength, shortVerticalLineLength));
-        unitTimeLength = DensityUtils.dp2px(getContext(), typedArray.getInt(R.styleable.XMTimeLineView_unitTimeLength, unitTimeLength));
-        unitSize = DensityUtils.dp2px(getContext(), typedArray.getInt(R.styleable.XMTimeLineView_unitSize, unitSize));
-        timeFontSize = DensityUtils.dp2px(getContext(), typedArray.getFloat(R.styleable.XMTimeLineView_timeFontSize, timeFontSize));
+        unitTimeLength = typedArray.getInt(R.styleable.XMTimeLineView_unitTimeLength, unitTimeLength);
+        unitSize = typedArray.getInt(R.styleable.XMTimeLineView_unitSize, unitSize);
+        timeFontSize = DensityUtils.sp2px(getContext(), typedArray.getFloat(R.styleable.XMTimeLineView_timeFontSize, timeFontSize));
         timeFontColor = typedArray.getColor(R.styleable.XMTimeLineView_timeFontColor, timeFontColor);
         verticalSpaceSize = DensityUtils.dp2px(getContext(), typedArray.getFloat(R.styleable.XMTimeLineView_verticalSpaceSize, verticalSpaceSize));
         pointerImgResID = typedArray.getResourceId(R.styleable.XMTimeLineView_pointerImgResID, pointerImgResID);
+        noVideoBgColor = typedArray.getColor(R.styleable.XMTimeLineView_noVideoBgColor, noVideoBgColor);
+        commmonVideoBgColor = typedArray.getColor(R.styleable.XMTimeLineView_commmonVideoBgColor, commmonVideoBgColor);
+        alarmVideoBgColor = typedArray.getColor(R.styleable.XMTimeLineView_alarmVideoBgColor, alarmVideoBgColor);
         typedArray.recycle();
-        setClickable(true);
-        //初始化总的时间线
-        totalVideoTimeLine = new VideoTimeLine();
-        Date startTime = new Date();
-        startTime.setHours(0);
-        startTime.setMinutes(0);
-        startTime.setSeconds(0);
-        Date endTime = new Date();
-        endTime.setHours(23);
-        endTime.setMinutes(59);
-        endTime.setSeconds(59);
-        totalVideoTimeLine.setStartTime(startTime);
-        totalVideoTimeLine.setEndTime(endTime);
-        //计算主面板宽度
-        computeMainBlockWidth();
+    }
+
+    /**
+     * 加载画笔
+     */
+    private void loadPaint() {
         //主面板画笔
         mainBlockPaint = new Paint();
         mainBlockPaint.setAntiAlias(true);
-        mainBlockPaint.setColor(alarmVideoBgColor);
-        mainBlockPaint.setStyle(Paint.Style.STROKE);
-        mainBlockPaint.setStrokeWidth(10);
+        mainBlockPaint.setDither(true);
+        mainBlockPaint.setColor(noVideoBgColor);
+        mainBlockPaint.setStyle(Paint.Style.FILL);
+        //时间线画笔
+        linePaint = new Paint();
+        linePaint.setAntiAlias(true);
+        linePaint.setDither(true);
+        linePaint.setStrokeWidth(lineSize);
+        linePaint.setColor(lineColor);
+        linePaint.setStyle(Paint.Style.STROKE);
+        //时间文字画笔
+        fontPaint = new Paint();
+        fontPaint.setAntiAlias(true);
+        fontPaint.setDither(true);
+        fontPaint.setTextSize(timeFontSize);
+        fontPaint.setColor(timeFontColor);
+        //指示器图片画笔
+        pointPaint = new Paint();
+        pointPaint.setAntiAlias(true);
+        pointPaint.setDither(true);
     }
 
     /**
-     * 计算主面板宽度
+     * 加载参数
      */
-    private void computeMainBlockWidth() {
-        //计算一天有多少分钟
-        long totalMunite = 24 * 60;
-        //计算需要多少个小格子
+    private void loadParams() {
+        //计算有多少个小格子
         totalSmallGridNum = (int) (totalMunite / unitTimeLength);
-        mainBlockWidth = totalSmallGridNum * tinySpace + (totalSmallGridNum + 1) * lineSize;
+        //计算有多少个大格子
+        totalBigGridNum = (int) (totalMunite / (unitTimeLength * unitSize));
+        //指示器图片
+        pointBitmap = ((BitmapDrawable)getResources().getDrawable(pointerImgResID)).getBitmap();
+        //屏幕宽度
+        screenWidth = SystemUtils.getScreenWidth(getContext()).getWidth();
+        //计算主面板宽度(不包含开始与结束时间字符超出的部分)
+        mainBlockWidth = totalSmallGridNum * tinySpace;
+        //计算主面板高度
+        mainBlockHeight = pointBitmap.getHeight();
+        //控件最小高度
+        minHeight = pointBitmap.getHeight() + lineSize + longVerticalLineLength + verticalSpaceSize + getTextSpaceHeight(timeFontSize);
+        //计算需要画的时间列表
+        timeList = computeTimeLine();
+        //测量左边第一个时间信息的宽度
+        float firstTimeWidth = fontPaint.measureText(timeList.get(0));
+        //测量右边最后一个时间信息的宽度
+        float endTimeWidth = fontPaint.measureText(timeList.get(timeList.size() - 1));
+        //控件的总宽度为主面板的宽度加上第一和最后一个时间信息的宽度的各一半
+        mWidth = mainBlockWidth + firstTimeWidth/2 + endTimeWidth /2;
     }
 
-    /**
-     * 计算主面板高度
-     */
-    private void computeMainBlockHeight(int mHeight) {
-        mainBlockHight = (int) (mHeight - getTextSpaceHeight(timeFontSize) - verticalSpaceSize - longVerticalLineLength - lineSize);
+    @Override
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+        int height = MeasureSpec.getSize(heightMeasureSpec);
+        int heightMode = MeasureSpec.getMode(heightMeasureSpec);
+        if (heightMode == MeasureSpec.AT_MOST) {
+            mHeight = minHeight;
+        } else {
+            if (height > minHeight) {
+                mHeight = height;
+                halfHeightPlus = (height - minHeight)/2;
+            } else {
+                mHeight = minHeight;
+            }
+        }
+        setMeasuredDimension((int) mWidth, (int) mHeight);
+    }
+
+    @Override
+    protected void onDraw(Canvas canvas) {
+        super.onDraw(canvas);
+        canvas.drawColor(Color.WHITE);
+        //画时间线主面板的参数
+        int mainBlockLeft;
+        int mainBlockTop = (int) halfHeightPlus;
+        int mainBlockRight;
+        int mainBlockBottom = (int) (mainBlockHeight + halfHeightPlus);
+        //画时间线的参数
+        int timeLineStartX;
+        int timeLineStartY = (int) (mainBlockHeight + halfHeightPlus);
+        int timeLineEndX;
+        int timeLineEndY = (int) (mainBlockHeight + halfHeightPlus);
+        //画时间刻度的参数
+        int ruleLineStartX;
+        int ruleLineStartY = (int) (mainBlockHeight + lineSize + halfHeightPlus);
+        //画时间文字的参数
+        int textStartX;
+        int textStartY = (int) (mainBlockHeight + lineSize + longVerticalLineLength + verticalSpaceSize + halfHeightPlus);
+        //画标尺指示器图片的参数
+        int pointBitmapX = (screenWidth - pointBitmap.getWidth())/2;
+        int pointBitmapY = (int) halfHeightPlus;
+        //调整参数
+        if (mWidth <= screenWidth) {
+            int halfWidth = (int) ((screenWidth - mWidth)/2);
+            int blockHalfWidth = (int) ((screenWidth - mainBlockWidth)/2);
+            mainBlockLeft = blockHalfWidth;
+            mainBlockRight = screenWidth/2 + blockHalfWidth;
+            timeLineStartX = blockHalfWidth;
+            timeLineEndX = screenWidth/2 + blockHalfWidth;
+            ruleLineStartX = blockHalfWidth;
+            textStartX = halfWidth;
+        } else {
+            if (mainBlockWidth <= screenWidth) {
+                int blockHalfWidth = (int) ((screenWidth - mainBlockWidth)/2);
+                mainBlockLeft = blockHalfWidth;
+                mainBlockRight = screenWidth/2 + blockHalfWidth;
+                timeLineStartX = blockHalfWidth;
+                timeLineEndX = screenWidth/2 + blockHalfWidth;
+                ruleLineStartX = blockHalfWidth;
+                textStartX = (int) (- (mWidth - screenWidth)/2);
+            } else {
+                int halfWidth = (int) ((mWidth - screenWidth)/2);
+                int blockHalfWidth = (int) ((mainBlockWidth - screenWidth)/2);
+                mainBlockLeft = - blockHalfWidth;
+                mainBlockRight = screenWidth + blockHalfWidth;
+                timeLineStartX = - blockHalfWidth;
+                timeLineEndX = screenWidth + blockHalfWidth;
+                ruleLineStartX = - blockHalfWidth;
+                textStartX = - halfWidth;
+            }
+        }
+        //画时间线主面板
+        canvas.drawRect(mainBlockLeft, mainBlockTop, mainBlockRight, mainBlockBottom, mainBlockPaint);
+        //画时间线
+        canvas.drawLine(timeLineStartX, timeLineStartY, timeLineEndX, timeLineEndY, linePaint);
+        //画时间刻度
+        canvas.drawLine(ruleLineStartX, ruleLineStartY, ruleLineStartX, ruleLineStartY + longVerticalLineLength, linePaint);
+        for (int i=0; i<totalSmallGridNum; i++) {
+            ruleLineStartX += tinySpace;
+            float ruleEndY = ruleLineStartY + shortVerticalLineLength;
+            if ((i + 1) % unitSize == 0) {
+                ruleEndY = ruleLineStartY + longVerticalLineLength;
+            }
+            canvas.drawLine(ruleLineStartX, ruleLineStartY, ruleLineStartX, ruleEndY, linePaint);
+        }
+        //画时间文字
+        float bigGridWidth = unitSize * tinySpace;//大格子的宽度
+        for (int i = 0; i < timeList.size(); i++) {
+            canvas.drawText(timeList.get(i), textStartX + bigGridWidth * i, textStartY, fontPaint);
+        }
+        //画标尺指示器图片
+        canvas.drawBitmap(pointBitmap, pointBitmapX, pointBitmapY, pointPaint);
     }
 
     /**
@@ -165,23 +316,47 @@ public class XMTimeLineView extends HorizontalScrollView {
         return (float) Math.ceil(fontMetrics.bottom - fontMetrics.top);
     }
 
-    @Override
-    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-        int mHeight = MeasureSpec.getSize(heightMeasureSpec);
-        //计算主面板高度
-        computeMainBlockHeight(mHeight);
-        setMeasuredDimension((int) mainBlockWidth, mHeight);
+    /**
+     * 计算需要画的时间信息列表
+     */
+    private List<String> computeTimeLine() {
+        List<Date> dateList = new ArrayList<>();
+        Date startTime = new Date();
+        startTime.setHours(0);
+        startTime.setMinutes(0);
+        startTime.setSeconds(0);
+        dateList.add(startTime);
+        for (int i = 0; i < totalBigGridNum; i++) {
+            Date date = new Date();
+            if (i != 0) {
+                //计算当前大格子的分钟量
+                int currentGridMunites = i * unitTimeLength * unitSize;
+                date.setHours(currentGridMunites / 60);
+                date.setMinutes(currentGridMunites % 60);
+            }
+            dateList.add(date);
+        }
+        List<String> timeList = new ArrayList<>();
+        for (Date date : dateList) {
+            String hour = date.getHours() + "";
+            String minute = date.getMinutes() + "";
+            String dateString = (hour.length() == 1 ? "0" + hour : hour) + ":" + (minute.length() == 1 ? "0" + minute : minute);
+            timeList.add(dateString);
+        }
+        return timeList;
     }
 
-    @Override
-    protected void onDraw(Canvas canvas) {
-        super.onDraw(canvas);
-        int screenWidth = SystemUtils.getScreenWidth(getContext()).getWidth();
-        canvas.drawColor(Color.WHITE);
-        //画时间线主面板
-        int halfLength = (int) (mainBlockWidth - screenWidth) /2;
-//        canvas.drawRect(getLeft()-halfLength, getTop(), getLeft() + screenWidth + halfLength, getTop() + mainBlockHight, mainBlockPaint);
-        canvas.drawRect(100, 100, 800, 800, mainBlockPaint);
+    /**
+     * 获取控件宽度
+     */
+    public float getmWidth() {
+        return mWidth;
+    }
+
+    /**
+     * 获取控件高度
+     */
+    public float getmHeight() {
+        return mHeight;
     }
 }

@@ -9,7 +9,8 @@ import android.graphics.Paint;
 import android.graphics.drawable.BitmapDrawable;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
-import android.widget.HorizontalScrollView;
+import android.view.MotionEvent;
+import android.view.View;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -19,7 +20,7 @@ import java.util.List;
  * 雄迈摄像机用到的时间轴控件
  */
 
-public class XMTimeLineView extends HorizontalScrollView {
+public class XMTimeLineView extends View {
 
     //描述时间线粗细的属性(单位：dp)
     private float lineSize = 0.5f;
@@ -52,6 +53,8 @@ public class XMTimeLineView extends HorizontalScrollView {
 
     //控件宽度
     private float mWidth;
+    //控件滚动时的宽度
+    private float mScrollWidth;
     //控件高度
     private float mHeight;
     //控件最小高度
@@ -86,6 +89,10 @@ public class XMTimeLineView extends HorizontalScrollView {
     private Paint pointPaint;
     //指示器图片
     private Bitmap pointBitmap;
+    //标尺的起始位置偏移量(向左为负，向右为正)
+    private float ruleStartPositionOffSet;
+    //按下时的X坐标
+    private float downX;
 
     public XMTimeLineView(Context context) {
         this(context, null);
@@ -180,6 +187,8 @@ public class XMTimeLineView extends HorizontalScrollView {
         float endTimeWidth = fontPaint.measureText(timeList.get(timeList.size() - 1));
         //控件的总宽度为主面板的宽度加上第一和最后一个时间信息的宽度的各一半
         mWidth = mainBlockWidth + firstTimeWidth/2 + endTimeWidth /2;
+        //控件滚动时的宽度
+        mScrollWidth = mWidth;
     }
 
     @Override
@@ -225,8 +234,8 @@ public class XMTimeLineView extends HorizontalScrollView {
         int pointBitmapY = (int) halfHeightPlus;
         //调整参数
         if (mWidth <= screenWidth) {
-            int halfWidth = (int) ((screenWidth - mWidth)/2);
-            int blockHalfWidth = (int) ((screenWidth - mainBlockWidth)/2);
+            int halfWidth = (int) ((screenWidth - mWidth)/2 + ruleStartPositionOffSet);
+            int blockHalfWidth = (int) ((screenWidth - mainBlockWidth)/2 + ruleStartPositionOffSet);
             mainBlockLeft = blockHalfWidth;
             mainBlockRight = screenWidth/2 + blockHalfWidth;
             timeLineStartX = blockHalfWidth;
@@ -235,16 +244,16 @@ public class XMTimeLineView extends HorizontalScrollView {
             textStartX = halfWidth;
         } else {
             if (mainBlockWidth <= screenWidth) {
-                int blockHalfWidth = (int) ((screenWidth - mainBlockWidth)/2);
+                int blockHalfWidth = (int) ((screenWidth - mainBlockWidth)/2 + ruleStartPositionOffSet);
                 mainBlockLeft = blockHalfWidth;
                 mainBlockRight = screenWidth/2 + blockHalfWidth;
                 timeLineStartX = blockHalfWidth;
                 timeLineEndX = screenWidth/2 + blockHalfWidth;
                 ruleLineStartX = blockHalfWidth;
-                textStartX = (int) (- (mWidth - screenWidth)/2);
+                textStartX = (int) (- (mWidth - screenWidth)/2 + ruleStartPositionOffSet);
             } else {
-                int halfWidth = (int) ((mWidth - screenWidth)/2);
-                int blockHalfWidth = (int) ((mainBlockWidth - screenWidth)/2);
+                int halfWidth = (int) ((mWidth - screenWidth)/2 + ruleStartPositionOffSet);
+                int blockHalfWidth = (int) ((mainBlockWidth - screenWidth)/2 + ruleStartPositionOffSet);
                 mainBlockLeft = - blockHalfWidth;
                 mainBlockRight = screenWidth + blockHalfWidth;
                 timeLineStartX = - blockHalfWidth;
@@ -274,6 +283,24 @@ public class XMTimeLineView extends HorizontalScrollView {
         }
         //画标尺指示器图片
         canvas.drawBitmap(pointBitmap, pointBitmapX, pointBitmapY, pointPaint);
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        if (event.getAction() == MotionEvent.ACTION_DOWN) {
+            downX = event.getRawX();
+        } else if (event.getAction() == MotionEvent.ACTION_MOVE) {
+            float moveX = event.getRawX();
+            ruleStartPositionOffSet += downX - moveX;
+            if (ruleStartPositionOffSet == 0 || ruleStartPositionOffSet == mainBlockWidth) {
+                return true;
+            }
+//            mWidth = mScrollWidth + Math.abs(ruleStartPositionOffSet);
+//            measure(MeasureSpec.UNSPECIFIED, MeasureSpec.UNSPECIFIED);
+            invalidate();
+            return true;
+        }
+        return super.onTouchEvent(event);
     }
 
     /**

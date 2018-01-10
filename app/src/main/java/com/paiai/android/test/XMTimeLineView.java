@@ -13,6 +13,10 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.widget.HorizontalScrollView;
 
+import com.paiai.android.test.utils.BitmapUtils;
+import com.paiai.android.test.utils.DensityUtils;
+import com.paiai.android.test.utils.SystemUtils;
+
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -29,6 +33,8 @@ public class XMTimeLineView extends HorizontalScrollView {
     private float lineSize = 0.5f;
     //线的颜色
     private int lineColor = 0xFF9B9B9B;
+    //录像背景的主面板高度
+    private float mainBlockHeight = 60;
     //一个小格子的宽度
     private int tinySpace = 10;
     //长竖线长度
@@ -62,8 +68,6 @@ public class XMTimeLineView extends HorizontalScrollView {
     private float minHeight;
     //指定高度与需要的最新高度之间的差值
     private float halfHeightPlus;
-    //录像背景的主面板高度
-    private int mainBlockHeight;
     //录像背景的主面板宽度
     private float mainBlockWidth;
     //一天有多少分钟
@@ -76,6 +80,8 @@ public class XMTimeLineView extends HorizontalScrollView {
     private List<VideoTimeLine> alarmVideoTimeLineList = new ArrayList<>();
     //屏幕宽度
     private int screenWidth;
+    //测量左边第一个时间信息的宽度
+    private float firstTimeWidth;
     //小格子的总数量
     private int totalSmallGridNum;
     //大格子的总数量
@@ -88,12 +94,18 @@ public class XMTimeLineView extends HorizontalScrollView {
     private Paint fontPaint;
     //画指示器图片的画笔
     private Paint pointPaint;
+    //否是显示测试边框
+    private static final boolean SHOW_TEST_BOUND_DRAW = false;
+    //画测试边框的画笔
+    private Paint testBoundPaint;
     //指示器图片
     private Bitmap pointBitmap;
     //按下时刻的横坐标
     private float lastX;
     //视图滑动的偏移量
     private float offset;
+    //画线坐标偏移量
+    private float lineOffsetSize;
 
     public XMTimeLineView(Context context) {
         this(context, null);
@@ -117,6 +129,7 @@ public class XMTimeLineView extends HorizontalScrollView {
     private void loadAttibute(Context context, @Nullable AttributeSet attrs) {
         TypedArray typedArray = context.obtainStyledAttributes(attrs, R.styleable.XMTimeLineView);
         lineSize = DensityUtils.dp2px(getContext(), typedArray.getFloat(R.styleable.XMTimeLineView_lineSize, lineSize));
+        mainBlockHeight = DensityUtils.dp2px(getContext(), typedArray.getFloat(R.styleable.XMTimeLineView_mainBlockHeight, mainBlockHeight));
         lineColor = typedArray.getColor(R.styleable.XMTimeLineView_lineColor, lineColor);
         tinySpace = DensityUtils.dp2px(getContext(), typedArray.getInt(R.styleable.XMTimeLineView_tinySpace, tinySpace));
         longVerticalLineLength = DensityUtils.dp2px(getContext(), typedArray.getFloat(R.styleable.XMTimeLineView_longVerticalLineLength, longVerticalLineLength));
@@ -160,12 +173,23 @@ public class XMTimeLineView extends HorizontalScrollView {
         pointPaint = new Paint();
         pointPaint.setAntiAlias(true);
         pointPaint.setDither(true);
+        //测试画笔
+        if (SHOW_TEST_BOUND_DRAW) {
+            testBoundPaint = new Paint();
+            testBoundPaint.setAntiAlias(true);
+            testBoundPaint.setDither(true);
+            testBoundPaint.setStyle(Paint.Style.STROKE);
+            testBoundPaint.setStrokeWidth(5);
+            testBoundPaint.setColor(Color.RED);
+        }
     }
 
     /**
      * 加载参数
      */
     private void loadParams() {
+        //计算画线偏移量
+        lineOffsetSize = lineSize/2;
         //计算有多少个小格子
         totalSmallGridNum = (int) (totalMunite / unitTimeLength);
         //计算有多少个大格子
@@ -176,18 +200,17 @@ public class XMTimeLineView extends HorizontalScrollView {
         screenWidth = SystemUtils.getScreenWidth(getContext()).getWidth();
         //计算主面板宽度(不包含开始与结束时间字符超出的部分)
         mainBlockWidth = totalSmallGridNum * tinySpace;
-        //计算主面板高度
-        mainBlockHeight = pointBitmap.getHeight();
+        //缩放指示器图片高度为主面板高度
+        pointBitmap = BitmapUtils.zoomBitmap(pointBitmap, pointBitmap.getWidth(), (int) mainBlockHeight);
         //控件最小高度
-        minHeight = pointBitmap.getHeight() + lineSize + longVerticalLineLength + verticalSpaceSize + getTextSpaceHeight(timeFontSize);
+        minHeight = mainBlockHeight + lineSize + longVerticalLineLength + verticalSpaceSize + getTextBottomSpaceHeight(timeFontSize);
         //计算需要画的时间列表
         timeList = computeTimeLine();
         //测量左边第一个时间信息的宽度
-        float firstTimeWidth = fontPaint.measureText(timeList.get(0));
-        //测量右边最后一个时间信息的宽度
+        firstTimeWidth = fontPaint.measureText(timeList.get(0));
         float endTimeWidth = fontPaint.measureText(timeList.get(timeList.size() - 1));
-        //控件的总宽度为主面板的宽度加上第一和最后一个时间信息的宽度的各一半
-        mWidth = mainBlockWidth + firstTimeWidth /2 + endTimeWidth /2;
+        //控件的总宽度为主面板的宽度加上第一和最后一个时间信息的宽度的各一半，再减去时间居中的线宽(时间的中心点与竖线的中心点对齐)
+        mWidth = mainBlockWidth + lineOffsetSize * 2 + (firstTimeWidth /2 - lineOffsetSize) + (endTimeWidth/2 - lineOffsetSize);
     }
 
     @Override
@@ -212,52 +235,52 @@ public class XMTimeLineView extends HorizontalScrollView {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         canvas.drawColor(Color.WHITE);
-        //画时间线主面板的参数
+        //画主面板的参数
         int mainBlockLeft;
         int mainBlockTop = (int) halfHeightPlus;
         int mainBlockRight;
         int mainBlockBottom = (int) (mainBlockHeight + halfHeightPlus);
         //画时间线的参数
         int timeLineStartX;
-        int timeLineStartY = (int) (mainBlockHeight + halfHeightPlus);
+        int timeLineStartY = (int) (mainBlockHeight + halfHeightPlus + lineOffsetSize);
         int timeLineEndX;
-        int timeLineEndY = (int) (mainBlockHeight + halfHeightPlus);
         //画时间刻度的参数
         int ruleLineStartX;
-        int ruleLineStartY = (int) (mainBlockHeight + lineSize + halfHeightPlus);
+        int ruleLineStartY = (int) (halfHeightPlus + mainBlockHeight + lineSize);
         //画时间文字的参数
         int textStartX;
-        int textStartY = (int) (mainBlockHeight + lineSize + longVerticalLineLength + verticalSpaceSize + halfHeightPlus);
+        int textStartY = (int) (halfHeightPlus + mainBlockHeight + lineSize + longVerticalLineLength + verticalSpaceSize);
         //画标尺指示器图片的参数
-        int pointBitmapX = (screenWidth - pointBitmap.getWidth())/2;
+        int pointBitmapX = (int) ((screenWidth - pointBitmap.getWidth())/2 + lineOffsetSize);
         int pointBitmapY = (int) halfHeightPlus;
         //调整参数
+        int startX;
+        int blockStartX;
         if (mWidth <= screenWidth) {
-            int startX = (int) ((screenWidth - mWidth)/2);
-            int blockStartX = (int) ((screenWidth - mainBlockWidth)/2);
-            mainBlockLeft = blockStartX;
-            timeLineStartX = blockStartX;
-            ruleLineStartX = blockStartX;
-            textStartX = startX;
+            startX = (int) ((screenWidth - mWidth)/2);
+            blockStartX = (int) ((screenWidth - mainBlockWidth)/2 + lineOffsetSize);
         } else {
+            startX = (int) (- (mWidth - screenWidth)/2 + offset);
             if (mainBlockWidth <= screenWidth) {
-                int startX = (int) (- (mWidth - screenWidth)/2 + offset);
                 float halfBlockOffset = (screenWidth - mainBlockWidth)/2;
-                int blockStartX = (int) (halfBlockOffset + offset);
-                mainBlockLeft = blockStartX;
-                timeLineStartX = blockStartX;
-                ruleLineStartX = blockStartX;
-                textStartX = startX;
+                blockStartX = (int) (halfBlockOffset + offset + lineOffsetSize);
             } else {
-                int startX = (int) (- (mWidth - screenWidth)/2 + offset);
                 float halfBlockOffset = (mainBlockWidth - screenWidth)/2;
-                int blockStartX = (int) (-halfBlockOffset + offset);
-                mainBlockLeft = blockStartX;
-                timeLineStartX = blockStartX;
-                ruleLineStartX = blockStartX;
-                textStartX = startX;
+                blockStartX = (int) (-halfBlockOffset + offset + lineOffsetSize);
             }
         }
+        mainBlockLeft = blockStartX;
+        mainBlockRight = blockStartX + totalSmallGridNum * tinySpace;
+        timeLineStartX = (int) (blockStartX - lineOffsetSize);
+        ruleLineStartX = blockStartX;
+        timeLineEndX = (int) (mainBlockRight + lineOffsetSize);
+        //计算左边时间的中心点
+        int firstTimePosition = (int) (startX + firstTimeWidth/2);
+        textStartX = startX + (blockStartX - firstTimePosition);
+        //画时间线主面板
+        canvas.drawRect(mainBlockLeft, mainBlockTop, mainBlockRight, mainBlockBottom, mainBlockPaint);
+        //画时间线
+        canvas.drawLine(timeLineStartX, timeLineStartY, timeLineEndX, timeLineStartY, linePaint);
         //画时间刻度
         canvas.drawLine(ruleLineStartX, ruleLineStartY, ruleLineStartX, ruleLineStartY + longVerticalLineLength, linePaint);
         for (int i=0; i<totalSmallGridNum; i++) {
@@ -268,19 +291,17 @@ public class XMTimeLineView extends HorizontalScrollView {
             }
             canvas.drawLine(ruleLineStartX, ruleLineStartY, ruleLineStartX, ruleEndY, linePaint);
         }
-        mainBlockRight = ruleLineStartX;
-        timeLineEndX = ruleLineStartX;
         //画时间文字
         float bigGridWidth = unitSize * tinySpace;//大格子的宽度
         for (int i = 0; i < timeList.size(); i++) {
             canvas.drawText(timeList.get(i), textStartX + bigGridWidth * i, textStartY, fontPaint);
         }
-        //画时间线主面板
-        canvas.drawRect(mainBlockLeft, mainBlockTop, mainBlockRight, mainBlockBottom, mainBlockPaint);
-        //画时间线
-        canvas.drawLine(timeLineStartX, timeLineStartY, timeLineEndX, timeLineEndY, linePaint);
         //画标尺指示器图片
         canvas.drawBitmap(pointBitmap, pointBitmapX, pointBitmapY, pointPaint);
+        //测试画图
+        if (SHOW_TEST_BOUND_DRAW) {
+            canvas.drawRect(-(mWidth - screenWidth)/2 + offset + lineOffsetSize, halfHeightPlus, screenWidth + (mWidth - screenWidth)/2 + offset + lineOffsetSize, halfHeightPlus + minHeight, testBoundPaint);
+        }
     }
 
     @Override
@@ -354,11 +375,11 @@ public class XMTimeLineView extends HorizontalScrollView {
     /**
      * 根据字体大小获取字体所占空间的高度
      */
-    private float getTextSpaceHeight(float fontSize) {
+    private float getTextBottomSpaceHeight(float fontSize) {
         Paint paint = new Paint();
         paint.setTextSize(fontSize);
         Paint.FontMetrics fontMetrics = paint.getFontMetrics();
-        return (float) Math.ceil(fontMetrics.bottom - fontMetrics.top);
+        return Math.abs(fontMetrics.bottom);
     }
 
     /**

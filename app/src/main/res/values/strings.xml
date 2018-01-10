@@ -21,6 +21,8 @@
         <attr name="lineSize"/>
         <!-- 线的颜色 -->
         <attr name="lineColor"/>
+        <!-- 时间块儿面板高度 -->
+        <attr name="mainBlockHeight" format="float"/>
         <!-- 一个小格子的宽度 -->
         <attr name="tinySpace" format="integer"/>
         <!-- 长竖线长度 -->

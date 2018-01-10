@@ -9,6 +9,8 @@ import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
 
+import com.paiai.android.test.utils.DensityUtils;
+
 /**
  * 自定义进度条
  */

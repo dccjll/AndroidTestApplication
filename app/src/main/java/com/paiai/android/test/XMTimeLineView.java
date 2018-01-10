@@ -9,6 +9,8 @@ import android.graphics.Paint;
 import android.graphics.drawable.BitmapDrawable;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
+import android.util.Log;
+import android.view.MotionEvent;
 import android.widget.HorizontalScrollView;
 
 import java.util.ArrayList;
@@ -20,6 +22,8 @@ import java.util.List;
  */
 
 public class XMTimeLineView extends HorizontalScrollView {
+
+    private static final String TAG = "XMTimeLineView";
 
     //描述时间线粗细的属性(单位：dp)
     private float lineSize = 0.5f;
@@ -86,6 +90,10 @@ public class XMTimeLineView extends HorizontalScrollView {
     private Paint pointPaint;
     //指示器图片
     private Bitmap pointBitmap;
+    //按下时刻的横坐标
+    private float lastX;
+    //视图滑动的偏移量
+    private float offset;
 
     public XMTimeLineView(Context context) {
         this(context, null);
@@ -179,7 +187,7 @@ public class XMTimeLineView extends HorizontalScrollView {
         //测量右边最后一个时间信息的宽度
         float endTimeWidth = fontPaint.measureText(timeList.get(timeList.size() - 1));
         //控件的总宽度为主面板的宽度加上第一和最后一个时间信息的宽度的各一半
-        mWidth = mainBlockWidth + firstTimeWidth/2 + endTimeWidth /2;
+        mWidth = mainBlockWidth + firstTimeWidth /2 + endTimeWidth /2;
     }
 
     @Override
@@ -225,38 +233,31 @@ public class XMTimeLineView extends HorizontalScrollView {
         int pointBitmapY = (int) halfHeightPlus;
         //调整参数
         if (mWidth <= screenWidth) {
-            int halfWidth = (int) ((screenWidth - mWidth)/2);
-            int blockHalfWidth = (int) ((screenWidth - mainBlockWidth)/2);
-            mainBlockLeft = blockHalfWidth;
-            mainBlockRight = screenWidth/2 + blockHalfWidth;
-            timeLineStartX = blockHalfWidth;
-            timeLineEndX = screenWidth/2 + blockHalfWidth;
-            ruleLineStartX = blockHalfWidth;
-            textStartX = halfWidth;
+            int startX = (int) ((screenWidth - mWidth)/2);
+            int blockStartX = (int) ((screenWidth - mainBlockWidth)/2);
+            mainBlockLeft = blockStartX;
+            timeLineStartX = blockStartX;
+            ruleLineStartX = blockStartX;
+            textStartX = startX;
         } else {
             if (mainBlockWidth <= screenWidth) {
-                int blockHalfWidth = (int) ((screenWidth - mainBlockWidth)/2);
-                mainBlockLeft = blockHalfWidth;
-                mainBlockRight = screenWidth/2 + blockHalfWidth;
-                timeLineStartX = blockHalfWidth;
-                timeLineEndX = screenWidth/2 + blockHalfWidth;
-                ruleLineStartX = blockHalfWidth;
-                textStartX = (int) (- (mWidth - screenWidth)/2);
+                int startX = (int) (- (mWidth - screenWidth)/2 + offset);
+                float halfBlockOffset = (screenWidth - mainBlockWidth)/2;
+                int blockStartX = (int) (halfBlockOffset + offset);
+                mainBlockLeft = blockStartX;
+                timeLineStartX = blockStartX;
+                ruleLineStartX = blockStartX;
+                textStartX = startX;
             } else {
-                int halfWidth = (int) ((mWidth - screenWidth)/2);
-                int blockHalfWidth = (int) ((mainBlockWidth - screenWidth)/2);
-                mainBlockLeft = - blockHalfWidth;
-                mainBlockRight = screenWidth + blockHalfWidth;
-                timeLineStartX = - blockHalfWidth;
-                timeLineEndX = screenWidth + blockHalfWidth;
-                ruleLineStartX = - blockHalfWidth;
-                textStartX = - halfWidth;
+                int startX = (int) (- (mWidth - screenWidth)/2 + offset);
+                float halfBlockOffset = (mainBlockWidth - screenWidth)/2;
+                int blockStartX = (int) (-halfBlockOffset + offset);
+                mainBlockLeft = blockStartX;
+                timeLineStartX = blockStartX;
+                ruleLineStartX = blockStartX;
+                textStartX = startX;
             }
         }
-        //画时间线主面板
-        canvas.drawRect(mainBlockLeft, mainBlockTop, mainBlockRight, mainBlockBottom, mainBlockPaint);
-        //画时间线
-        canvas.drawLine(timeLineStartX, timeLineStartY, timeLineEndX, timeLineEndY, linePaint);
         //画时间刻度
         canvas.drawLine(ruleLineStartX, ruleLineStartY, ruleLineStartX, ruleLineStartY + longVerticalLineLength, linePaint);
         for (int i=0; i<totalSmallGridNum; i++) {
@@ -267,13 +268,57 @@ public class XMTimeLineView extends HorizontalScrollView {
             }
             canvas.drawLine(ruleLineStartX, ruleLineStartY, ruleLineStartX, ruleEndY, linePaint);
         }
+        mainBlockRight = ruleLineStartX;
+        timeLineEndX = ruleLineStartX;
         //画时间文字
         float bigGridWidth = unitSize * tinySpace;//大格子的宽度
         for (int i = 0; i < timeList.size(); i++) {
             canvas.drawText(timeList.get(i), textStartX + bigGridWidth * i, textStartY, fontPaint);
         }
+        //画时间线主面板
+        canvas.drawRect(mainBlockLeft, mainBlockTop, mainBlockRight, mainBlockBottom, mainBlockPaint);
+        //画时间线
+        canvas.drawLine(timeLineStartX, timeLineStartY, timeLineEndX, timeLineEndY, linePaint);
         //画标尺指示器图片
         canvas.drawBitmap(pointBitmap, pointBitmapX, pointBitmapY, pointPaint);
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent ev) {
+        if (ev.getAction() == MotionEvent.ACTION_DOWN) {
+            lastX = ev.getRawX();
+        } else if (ev.getAction() == MotionEvent.ACTION_MOVE) {
+            float moveX = ev.getRawX();
+            float currentOffset = moveX - lastX;
+            offset +=  currentOffset;
+            Log.i(TAG, "moveX=" + moveX + "\nlastX=" + lastX + "\ncurrentOffset=" + currentOffset + "\n");
+            lastX = moveX;
+            float minClickableY = (mHeight - minHeight)/2;
+            float maxClickableY = minClickableY + mainBlockHeight;
+            if (mWidth <= screenWidth || ev.getY() < minClickableY || ev.getY() > maxClickableY) {
+                return true;
+            }
+            requestInvalidate("MOVE");
+
+        } else if (ev.getAction() == MotionEvent.ACTION_UP) {
+            requestInvalidate("UP");
+        }
+        return true;
+    }
+
+    /**
+     * 计算滑动偏移量，重绘视图
+     */
+    private void requestInvalidate(String tag) {
+        float maxOffset = mainBlockWidth/2;
+        if (offset < -maxOffset) {
+            offset = -maxOffset;
+        }
+        if (offset > maxOffset) {
+            offset = maxOffset;
+        }
+        Log.i(TAG, tag + "-------\noffset=" + offset + "\nmaxOffset(+-)=" + maxOffset);
+        postInvalidate();
     }
 
     /**
@@ -326,14 +371,12 @@ public class XMTimeLineView extends HorizontalScrollView {
         startTime.setMinutes(0);
         startTime.setSeconds(0);
         dateList.add(startTime);
-        for (int i = 0; i < totalBigGridNum; i++) {
+        for (int i = 1; i <= totalBigGridNum; i++) {
             Date date = new Date();
-            if (i != 0) {
-                //计算当前大格子的分钟量
-                int currentGridMunites = i * unitTimeLength * unitSize;
-                date.setHours(currentGridMunites / 60);
-                date.setMinutes(currentGridMunites % 60);
-            }
+            //计算当前大格子的分钟量
+            int currentGridMunites = i * unitTimeLength * unitSize;
+            date.setHours(currentGridMunites / 60);
+            date.setMinutes(currentGridMunites % 60);
             dateList.add(date);
         }
         List<String> timeList = new ArrayList<>();

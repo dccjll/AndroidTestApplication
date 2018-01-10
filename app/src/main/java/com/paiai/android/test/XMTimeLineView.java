@@ -50,7 +50,7 @@ public class XMTimeLineView extends HorizontalScrollView {
     //时间字体颜色
     private int timeFontColor = 0xFF333333;
     //时间距离标尺的垂直距离
-    private float verticalSpaceSize = 3.5f;
+    private float verticalSpaceSize = 14f;
     //视频回放指示器图片的资源ID
     private int pointerImgResID = R.mipmap.video_playback_pointer;
     //无录像的背景颜色
@@ -72,6 +72,10 @@ public class XMTimeLineView extends HorizontalScrollView {
     private float mainBlockWidth;
     //一天有多少分钟
     private static final long totalMunite = 24 * 60;
+    //一天有多少毫秒
+    private static final long totalMilliSeconds = totalMunite * 60 * 1000;
+    //视图加载时，时间指示器指示的默认时间
+    private Date defaultDate;
     //时间信息列表
     private List<String> timeList = new ArrayList<>();
     //普通录像的时间轴列表
@@ -200,6 +204,11 @@ public class XMTimeLineView extends HorizontalScrollView {
         screenWidth = SystemUtils.getScreenWidth(getContext()).getWidth();
         //计算主面板宽度(不包含开始与结束时间字符超出的部分)
         mainBlockWidth = totalSmallGridNum * tinySpace;
+        //时间指示器指示的默认时间
+        defaultDate = new Date();
+        defaultDate.setHours(12);
+        defaultDate.setMinutes(0);
+        defaultDate.setSeconds(0);
         //缩放指示器图片高度为主面板高度
         pointBitmap = BitmapUtils.zoomBitmap(pointBitmap, pointBitmap.getWidth(), (int) mainBlockHeight);
         //控件最小高度
@@ -341,6 +350,25 @@ public class XMTimeLineView extends HorizontalScrollView {
         }
         Log.i(TAG, tag + "-------\noffset=" + offset + "\nmaxOffset(+-)=" + maxOffset);
         postInvalidate();
+        Date currentTime = computeCurrentTime();
+        if (currentTime != null) {
+            Log.i(TAG, "currentTime=====" + currentTime.getYear() + "-" + currentTime.getMonth() + 1 + "-" + currentTime.getDate() + " " + currentTime.getHours() + ":" + currentTime.getMinutes() + ":" + currentTime.getSeconds());
+        }
+    }
+
+    /**
+     * 计算当前指示的时间
+     */
+    private Date computeCurrentTime() {
+        Date currentTime = null;
+        //计算时间偏移的秒数
+        if (offset != 0) {
+            float pecent = Math.abs(offset)/mainBlockWidth;
+            float totalMilliSecondOffset = pecent * totalMilliSeconds;
+            float currentTimeMillis = defaultDate.getTime() + totalMilliSecondOffset * (offset > 0 ? -1 : 1);
+            currentTime = new Date((long) currentTimeMillis);
+        }
+        return currentTime;
     }
 
     /**

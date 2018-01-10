@@ -1,4 +1,4 @@
-package com.paiai.android.test;
+package com.paiai.android.test.utils;
 
 import android.content.Context;
 import android.util.TypedValue;

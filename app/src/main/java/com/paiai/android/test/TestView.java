@@ -8,6 +8,9 @@ import android.support.annotation.Nullable;
 import android.util.AttributeSet;
 import android.view.View;
 
+import com.paiai.android.test.utils.DensityUtils;
+import com.paiai.android.test.utils.SystemUtils;
+
 /**
  * 自定义进度条
  */

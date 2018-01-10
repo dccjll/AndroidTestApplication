@@ -8,20 +8,20 @@
     tools:context="com.paiai.android.test.MainActivity">
 
     <!--<LinearLayout-->
-        <!--android:layout_width="match_parent"-->
-        <!--android:layout_height="44dp"-->
-        <!--android:background="@android:color/black">-->
+    <!--android:layout_width="match_parent"-->
+    <!--android:layout_height="44dp"-->
+    <!--android:background="@android:color/black">-->
 
-        <!--<com.paiai.android.test.CustomHorizontalProgressView-->
-            <!--android:id="@+id/customHorizontalProgressView"-->
-            <!--android:layout_width="match_parent"-->
-            <!--android:layout_height="44dp"-->
-            <!--android:layout_gravity="center_vertical"-->
-            <!--app:dragedLineColor="#dcbc94"-->
-            <!--app:lineColor="#9b9b9b"-->
-            <!--app:lineSize="1"-->
-            <!--app:slidingBlockColor="#ffffff"-->
-            <!--app:slidingBlockRadius="23" />-->
+    <!--<com.paiai.android.test.CustomHorizontalProgressView-->
+    <!--android:id="@+id/customHorizontalProgressView"-->
+    <!--android:layout_width="match_parent"-->
+    <!--android:layout_height="44dp"-->
+    <!--android:layout_gravity="center_vertical"-->
+    <!--app:dragedLineColor="#dcbc94"-->
+    <!--app:lineColor="#9b9b9b"-->
+    <!--app:lineSize="1"-->
+    <!--app:slidingBlockColor="#ffffff"-->
+    <!--app:slidingBlockRadius="23" />-->
     <!--</LinearLayout>-->
 
     <!--<LinearLayout-->
@@ -50,21 +50,23 @@
     <com.paiai.android.test.XMTimeLineView
         android:layout_marginTop="100dp"
         android:layout_width="wrap_content"
-        android:layout_height="400dp"
-        app:alarmVideoBgColor="#FFFF7345"
-        app:commmonVideoBgColor="#FFFFCFBE"
-        app:lineColor="#FF9B9B9B"
-        app:lineSize="0.5"
-        app:longVerticalLineLength="10"
-        app:noVideoBgColor="#E7E7E7"
-        app:pointerImgResID="@mipmap/video_playback_pointer"
-        app:shortVerticalLineLength="5"
-        app:timeFontColor="#FF333333"
-        app:timeFontSize="9"
+        android:layout_height="wrap_content"
+        android:background="@android:color/darker_gray"
+        app:lineSize="5"
+        app:lineColor="@android:color/holo_green_light"
+        app:mainBlockHeight="60"
         app:tinySpace="10"
-        app:unitSize="6"
+        app:longVerticalLineLength="10"
+        app:shortVerticalLineLength="5"
         app:unitTimeLength="10"
-        app:verticalSpaceSize="14" />
+        app:unitSize="6"
+        app:timeFontSize="9"
+        app:timeFontColor="#FF333333"
+        app:verticalSpaceSize="14"
+        app:pointerImgResID="@mipmap/video_playback_pointer"
+        app:noVideoBgColor="#E7E7E7"
+        app:commmonVideoBgColor="#FFFFCFBE"
+        app:alarmVideoBgColor="#FFFF7345"/>
     <!--<com.paiai.android.test.TestView-->
         <!--android:layout_marginTop="100dp"-->
         <!--android:layout_width="match_parent"-->

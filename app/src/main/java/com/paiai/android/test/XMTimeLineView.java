@@ -309,16 +309,17 @@ public class XMTimeLineView extends HorizontalScrollView {
         if (ev.getAction() == MotionEvent.ACTION_DOWN) {
             lastX = ev.getRawX();
         } else if (ev.getAction() == MotionEvent.ACTION_MOVE) {
+            float minClickableY = halfHeightPlus;
+            float maxClickableY = halfHeightPlus + mainBlockHeight;
+            if (mWidth <= screenWidth || ev.getY() < minClickableY || ev.getY() > maxClickableY) {
+                return true;
+            }
+            Log.i(TAG, "ev.getY()=" + ev.getY() + "\nminClickableY=" + minClickableY + "\nmaxClickableY=" + maxClickableY + "\n");
             float moveX = ev.getRawX();
             float currentOffset = moveX - lastX;
             offset +=  currentOffset;
             Log.i(TAG, "moveX=" + moveX + "\nlastX=" + lastX + "\ncurrentOffset=" + currentOffset + "\n");
             lastX = moveX;
-            float minClickableY = (mHeight - minHeight)/2;
-            float maxClickableY = minClickableY + mainBlockHeight;
-            if (mWidth <= screenWidth || ev.getY() < minClickableY || ev.getY() > maxClickableY) {
-                return true;
-            }
             requestInvalidate("MOVE");
 
         } else if (ev.getAction() == MotionEvent.ACTION_UP) {

@@ -72,10 +72,16 @@ public class XMTimeLineView extends HorizontalScrollView {
     private float mainBlockWidth;
     //一天有多少分钟
     private static final long totalMunite = 24 * 60;
-    //一天有多少毫秒
-    private static final long totalMilliSeconds = totalMunite * 60 * 1000;
+    //一天多少秒
+    private static final long totalSeconds = totalMunite * 60;
+    //一秒钟所占的宽度
+    private float unitSecondWidth;
     //视图加载时，时间指示器指示的默认时间
-    private Date defaultDate;
+    private String currentTime = "12:00:00";
+    //默认时间的秒数
+    private static final long defaultTimeSeconds = 12*60*60;
+    //当前时间的秒数
+    private long currentTimeSeconds;
     //时间信息列表
     private List<String> timeList = new ArrayList<>();
     //普通录像的时间轴列表
@@ -204,11 +210,10 @@ public class XMTimeLineView extends HorizontalScrollView {
         screenWidth = SystemUtils.getScreenWidth(getContext()).getWidth();
         //计算主面板宽度(不包含开始与结束时间字符超出的部分)
         mainBlockWidth = totalSmallGridNum * tinySpace;
-        //时间指示器指示的默认时间
-        defaultDate = new Date();
-        defaultDate.setHours(12);
-        defaultDate.setMinutes(0);
-        defaultDate.setSeconds(0);
+        //一秒钟所占的宽度
+        unitSecondWidth = (mainBlockWidth * 1)/totalSeconds;
+        //当前时间秒数
+        currentTimeSeconds = 12*60*60;
         //缩放指示器图片高度为主面板高度
         pointBitmap = BitmapUtils.zoomBitmap(pointBitmap, pointBitmap.getWidth(), (int) mainBlockHeight);
         //控件最小高度
@@ -342,33 +347,39 @@ public class XMTimeLineView extends HorizontalScrollView {
      */
     private void requestInvalidate(String tag) {
         float maxOffset = mainBlockWidth/2;
-        if (offset < -maxOffset) {
-            offset = -maxOffset;
+        if (offset < -maxOffset + unitSecondWidth) {
+            offset = -maxOffset + unitSecondWidth;
         }
         if (offset > maxOffset) {
             offset = maxOffset;
         }
         Log.i(TAG, tag + "-------\noffset=" + offset + "\nmaxOffset(+-)=" + maxOffset);
         postInvalidate();
-        Date currentTime = computeCurrentTime();
+        computeCurrentTime();
         if (currentTime != null) {
-            Log.i(TAG, "currentTime=====" + currentTime.getYear() + "-" + currentTime.getMonth() + 1 + "-" + currentTime.getDate() + " " + currentTime.getHours() + ":" + currentTime.getMinutes() + ":" + currentTime.getSeconds());
+            Log.i(TAG, "currentTime=====" + currentTime);
         }
     }
 
     /**
      * 计算当前指示的时间
      */
-    private Date computeCurrentTime() {
-        Date currentTime = null;
+    private void computeCurrentTime() {
         //计算时间偏移的秒数
         if (offset != 0) {
             float pecent = Math.abs(offset)/mainBlockWidth;
-            float totalMilliSecondOffset = pecent * totalMilliSeconds;
-            float currentTimeMillis = defaultDate.getTime() + totalMilliSecondOffset * (offset > 0 ? -1 : 1);
-            currentTime = new Date((long) currentTimeMillis);
+            float totalSecondsOffset = totalSeconds * pecent;
+            currentTimeSeconds = (long) (defaultTimeSeconds + totalSecondsOffset * (offset > 0 ? -1 : 1));
+            if (currentTimeSeconds < 0) {
+                currentTimeSeconds = 0;
+            } else if (currentTimeSeconds > totalSeconds - 1) {
+                currentTimeSeconds = totalSeconds - 1;
+            }
+            int hours = (int) (currentTimeSeconds/(60*60));
+            int minutes = (int) ((currentTimeSeconds%(60*60))/60);
+            int seconds = (int) ((currentTimeSeconds%(60*60))%60);
+            currentTime = (hours < 10 ? "0" + hours : "" + hours) + ":" + (minutes < 10 ? "0" + minutes : "" + minutes) + ":" + (seconds < 10 ? "0" + seconds : "" + seconds);
         }
-        return currentTime;
     }
 
     /**

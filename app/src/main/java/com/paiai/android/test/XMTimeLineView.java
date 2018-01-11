@@ -18,9 +18,11 @@ import com.paiai.android.test.utils.BitmapUtils;
 import com.paiai.android.test.utils.DensityUtils;
 import com.paiai.android.test.utils.SystemUtils;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * 雄迈摄像机用到的时间轴控件
@@ -99,14 +101,18 @@ public class XMTimeLineView extends HorizontalScrollView {
     private int totalSmallGridNum;
     //大格子的总数量
     private int totalBigGridNum;
-    //主面板画笔
-    private Paint mainBlockPaint;
+    //画没有视频的矩形区域的画笔
+    private Paint noVideoPaint;
     //画线的画笔
     private Paint linePaint;
     //时间文字画笔
     private Paint fontPaint;
     //画指示器图片的画笔
     private Paint pointPaint;
+    //画普通视频矩形色块的画笔
+    private Paint commonVideoPaint;
+    //画报警视频矩形色块的画笔
+    private Paint alarmVideoPaint;
     //否是显示测试边框
     private static final boolean SHOW_TEST_BOUND_DRAW = false;
     //画测试边框的画笔
@@ -125,6 +131,8 @@ public class XMTimeLineView extends HorizontalScrollView {
     private int mainBlockLeft;
     //主面板右边结束坐标
     private int mainBlockRight;
+    //从日期中提取规定时间信息格式的时间格式化对象
+    private static final SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss", Locale.CHINA);
 
     public XMTimeLineView(Context context) {
         this(context, null);
@@ -170,11 +178,11 @@ public class XMTimeLineView extends HorizontalScrollView {
      */
     private void loadPaint() {
         //主面板画笔
-        mainBlockPaint = new Paint();
-        mainBlockPaint.setAntiAlias(true);
-        mainBlockPaint.setDither(true);
-        mainBlockPaint.setColor(noVideoBgColor);
-        mainBlockPaint.setStyle(Paint.Style.FILL);
+        noVideoPaint = new Paint();
+        noVideoPaint.setAntiAlias(true);
+        noVideoPaint.setDither(true);
+        noVideoPaint.setColor(noVideoBgColor);
+        noVideoPaint.setStyle(Paint.Style.FILL);
         //时间线画笔
         linePaint = new Paint();
         linePaint.setAntiAlias(true);
@@ -192,6 +200,18 @@ public class XMTimeLineView extends HorizontalScrollView {
         pointPaint = new Paint();
         pointPaint.setAntiAlias(true);
         pointPaint.setDither(true);
+        //普通视频矩形色块画笔
+        commonVideoPaint = new Paint();
+        commonVideoPaint.setAntiAlias(true);
+        commonVideoPaint.setDither(true);
+        commonVideoPaint.setColor(commmonVideoBgColor);
+        commonVideoPaint.setStyle(Paint.Style.FILL);
+        //报警视频矩形色块画笔
+        alarmVideoPaint = new Paint();
+        alarmVideoPaint.setAntiAlias(true);
+        alarmVideoPaint.setDither(true);
+        alarmVideoPaint.setColor(alarmVideoBgColor);
+        alarmVideoPaint.setStyle(Paint.Style.FILL);
         //测试画笔
         if (SHOW_TEST_BOUND_DRAW) {
             testBoundPaint = new Paint();
@@ -299,7 +319,7 @@ public class XMTimeLineView extends HorizontalScrollView {
         int firstTimePosition = (int) (startX + firstTimeWidth/2);
         textStartX = startX + (blockStartX - firstTimePosition);
         //画时间线主面板
-        canvas.drawRect(mainBlockLeft, mainBlockTop, mainBlockRight, mainBlockBottom, mainBlockPaint);
+        canvas.drawRect(mainBlockLeft, mainBlockTop, mainBlockRight, mainBlockBottom, noVideoPaint);
         //画时间线
         canvas.drawLine(timeLineStartX, timeLineStartY, timeLineEndX, timeLineStartY, linePaint);
         //画时间刻度
@@ -319,6 +339,40 @@ public class XMTimeLineView extends HorizontalScrollView {
         }
         //画标尺指示器图片
         canvas.drawBitmap(pointBitmap, pointBitmapX, pointBitmapY, pointPaint);
+        //画普通视频的矩形色块
+        for (VideoTimeLine videoTimeLine : commonVideoTimeLineList) {
+            Float[] rect = computeRectLeftRightBound(videoTimeLine.getStartTime(), videoTimeLine.getEndTime());
+            if (rect == null || rect.length != 2) {
+                continue;
+            }
+            boolean flag = true;
+            for (Float bound : rect) {
+                if (bound == null) {
+                    flag = false;
+                }
+            }
+            if (!flag) {
+                continue;
+            }
+            canvas.drawRect(rect[0], mainBlockTop, rect[1], mainBlockBottom, commonVideoPaint);
+        }
+        //画报警视频的矩形色块
+        for (VideoTimeLine videoTimeLine : alarmVideoTimeLineList) {
+            Float[] rect = computeRectLeftRightBound(videoTimeLine.getStartTime(), videoTimeLine.getEndTime());
+            if (rect == null || rect.length != 2) {
+                continue;
+            }
+            boolean flag = true;
+            for (Float bound : rect) {
+                if (bound == null) {
+                    flag = false;
+                }
+            }
+            if (!flag) {
+                continue;
+            }
+            canvas.drawRect(rect[0], mainBlockTop, rect[1], mainBlockBottom, alarmVideoPaint);
+        }
         //测试画图
         if (SHOW_TEST_BOUND_DRAW) {
             canvas.drawRect(-(mWidth - screenWidth)/2 + offset + lineOffsetSize, halfHeightPlus, screenWidth + (mWidth - screenWidth)/2 + offset + lineOffsetSize, halfHeightPlus + minHeight, testBoundPaint);
@@ -374,27 +428,74 @@ public class XMTimeLineView extends HorizontalScrollView {
     }
 
     /**
-     * 根据当前时间计算偏移量
+     * 根据当前时间计算滑动的偏移量
      */
-    private void computeOffsetByCurrentTime() {
+    private Float computeOffsetByCurrentTime(String currentTime) {
+        Long timeSeconds = computeCurrentTimeTotalSeconds(currentTime);
+        if (timeSeconds == null) {
+            return null;
+        }
+        long timeOffset = defaultTimeSeconds - timeSeconds;
+        return ((timeOffset * 1.0f)/totalSeconds) * mainBlockWidth;
+    }
+
+    /**
+     * 根据当前时间计算矩形色块起始x坐标的的偏移量
+     */
+    private Float computeRectStartXOffsetByCurrentTime(String currentTime) {
+        Long timeSeconds = computeCurrentTimeTotalSeconds(currentTime);
+        if (timeSeconds == null) {
+            return null;
+        }
+        return ((timeSeconds * 1.0f)/totalSeconds) * mainBlockWidth;
+    }
+
+    /**
+     * 计算矩形色块起始x坐标与终点x坐标
+     */
+    private Float[] computeRectLeftRightBound(Date startDate, Date endDate) {
+        Float[] timeArr = new Float[2];
+        String startTime = null;
+        String endTime = null;
+        try {
+            startTime = sdf.format(startDate);
+            endTime = sdf.format(endDate);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        if (TextUtils.isEmpty(startTime) || TextUtils.isEmpty(endTime)) {
+            return null;
+        }
+        Float startOffset = computeRectStartXOffsetByCurrentTime(startTime);
+        Float endOffset = computeRectStartXOffsetByCurrentTime(endTime);
+        if (startOffset == null || endOffset ==  null || startOffset >= endOffset) {
+            return null;
+        }
+        timeArr[0] = mainBlockLeft + startOffset;
+        timeArr[1] = mainBlockLeft + endOffset;
+        return timeArr;
+    }
+
+    /**
+     * 计算当前时间的总秒数
+     */
+    private Long computeCurrentTimeTotalSeconds(String currentTime) {
         if (TextUtils.isEmpty(currentTime)) {
-            return;
+            return null;
         }
         String[] timeAttr = currentTime.split(":");
         if (timeAttr.length != 3) {
-            return;
+            return null;
         }
         for (String seg : timeAttr) {
             if (TextUtils.isEmpty(seg) || !(seg.length() == 1 || seg.length() == 2)) {
-                return;
+                return null;
             }
         }
         String hours = timeAttr[0];
         String minutes = timeAttr[1];
         String seconds = timeAttr[2];
-        long timeSeconds = Integer.parseInt(hours) * 60 * 60 + Integer.parseInt(minutes) * 60 + Integer.parseInt(seconds);
-        long timeOffset = defaultTimeSeconds - timeSeconds;
-        offset = ((timeOffset * 1.0f)/totalSeconds) * mainBlockWidth;
+        return Long.parseLong(hours) * 60 * 60 + Long.parseLong(minutes) * 60 + Long.parseLong(seconds);
     }
 
     /**
@@ -483,6 +584,7 @@ public class XMTimeLineView extends HorizontalScrollView {
         }
         this.commonVideoTimeLineList = commonVideoTimeLineList;
         this.alarmVideoTimeLineList = alarmVideoTimeLineList;
+        requestInvalidate("setVideoTimeLineList");
     }
 
     /**
@@ -555,8 +657,12 @@ public class XMTimeLineView extends HorizontalScrollView {
      * 设置当前时间
      */
     public void setCurrentTime(String currentTime) {
+        Float timeFloat = computeOffsetByCurrentTime(currentTime);
+        if (timeFloat == null) {
+            return;
+        }
+        offset = timeFloat;
         this.currentTime = currentTime;
-        computeOffsetByCurrentTime();
         requestInvalidate("setCurrentTime");
 
     }

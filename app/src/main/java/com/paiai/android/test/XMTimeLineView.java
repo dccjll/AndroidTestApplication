@@ -133,6 +133,11 @@ public class XMTimeLineView extends HorizontalScrollView {
     private int mainBlockRight;
     //从日期中提取规定时间信息格式的时间格式化对象
     private static final SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss", Locale.CHINA);
+    //时间信息改变监听器
+    private OnXMTimeChangeListener onXMTimeChangeListener;
+    interface OnXMTimeChangeListener {
+        void onTimeChange(String time);
+    }
 
     public XMTimeLineView(Context context) {
         this(context, null);
@@ -546,6 +551,9 @@ public class XMTimeLineView extends HorizontalScrollView {
         computeCurrentTime();
         if (currentTime != null) {
             Log.i(TAG, "currentTime=====" + currentTime);
+            if (onXMTimeChangeListener != null) {
+                onXMTimeChangeListener.onTimeChange(currentTime);
+            }
         }
     }
 
@@ -672,5 +680,12 @@ public class XMTimeLineView extends HorizontalScrollView {
      */
     public String getCurrentTime() {
         return currentTime;
+    }
+
+    /**
+     * 设置时间状态改变监听器
+     */
+    public void setOnXMTimeChangeListener(OnXMTimeChangeListener onXMTimeChangeListener) {
+        this.onXMTimeChangeListener = onXMTimeChangeListener;
     }
 }

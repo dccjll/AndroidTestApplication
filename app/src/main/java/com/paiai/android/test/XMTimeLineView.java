@@ -8,6 +8,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.drawable.BitmapDrawable;
 import android.support.annotation.Nullable;
+import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -80,6 +81,8 @@ public class XMTimeLineView extends HorizontalScrollView {
     private String currentTime = "12:00:00";
     //默认时间的秒数
     private static final long defaultTimeSeconds = 12*60*60;
+    //点击错位滑动兼容，点击时会滑动一小段距离，设定最小滑动距离偏移量
+    private static final int MinSlideOffsetX = 10;
     //当前时间的秒数
     private long currentTimeSeconds;
     //时间信息列表
@@ -111,11 +114,17 @@ public class XMTimeLineView extends HorizontalScrollView {
     //指示器图片
     private Bitmap pointBitmap;
     //按下时刻的横坐标
+    private float downX;
+    //不断移动的横坐标
     private float lastX;
     //视图滑动的偏移量
     private float offset;
     //画线坐标偏移量
     private float lineOffsetSize;
+    //主面板左边起始坐标
+    private int mainBlockLeft;
+    //主面板右边结束坐标
+    private int mainBlockRight;
 
     public XMTimeLineView(Context context) {
         this(context, null);
@@ -250,9 +259,7 @@ public class XMTimeLineView extends HorizontalScrollView {
         super.onDraw(canvas);
         canvas.drawColor(Color.WHITE);
         //画主面板的参数
-        int mainBlockLeft;
         int mainBlockTop = (int) halfHeightPlus;
-        int mainBlockRight;
         int mainBlockBottom = (int) (mainBlockHeight + halfHeightPlus);
         //画时间线的参数
         int timeLineStartX;
@@ -321,29 +328,109 @@ public class XMTimeLineView extends HorizontalScrollView {
     @Override
     public boolean onTouchEvent(MotionEvent ev) {
         if (ev.getAction() == MotionEvent.ACTION_DOWN) {
-            lastX = ev.getRawX();
+            if (!insideMainBlock(ev.getX(), ev.getY())) {//按下区域不在主面板内部，不响应触屏与点击事件
+                return false;
+            }
+            downX = ev.getX();
+            lastX = ev.getX();
         } else if (ev.getAction() == MotionEvent.ACTION_MOVE) {
-            float minClickableY = halfHeightPlus;
-            float maxClickableY = halfHeightPlus + mainBlockHeight;
-            if (mWidth <= screenWidth || ev.getY() < minClickableY || ev.getY() > maxClickableY) {
+            if (mWidth <= screenWidth) {//控件宽度未超出屏幕，不响应滑动事件
                 return true;
             }
-            Log.i(TAG, "ev.getY()=" + ev.getY() + "\nminClickableY=" + minClickableY + "\nmaxClickableY=" + maxClickableY + "\n");
-            float moveX = ev.getRawX();
+            if (!insideMainBlock(ev.getX(), ev.getY())) {
+                return true;
+            }
+            float moveX = ev.getX();
             float currentOffset = moveX - lastX;
-            offset +=  currentOffset;
             Log.i(TAG, "moveX=" + moveX + "\nlastX=" + lastX + "\ncurrentOffset=" + currentOffset + "\n");
+            if (Math.abs(currentOffset) < MinSlideOffsetX) {
+                return true;
+            }
             lastX = moveX;
+            //根据滑动位置计算偏移量
+            computeOffsetByCurrentOffset(currentOffset);
             requestInvalidate("MOVE");
-
         } else if (ev.getAction() == MotionEvent.ACTION_UP) {
-            requestInvalidate("UP");
+            if (downX == lastX) {
+                Log.i(TAG, "upuppppppp");
+                handleClick();
+            }
         }
         return true;
     }
 
     /**
-     * 计算滑动偏移量，重绘视图
+     * 根据滑动位置计算偏移量
+     */
+    private void computeOffsetByCurrentOffset(float currentOffset) {
+        offset +=  currentOffset;
+    }
+
+    /**
+     * 根据当前点击的位置计算偏移量
+     */
+    private void computeOffsetByClickPosition() {
+        offset += screenWidth/2 - lastX;
+    }
+
+    /**
+     * 根据当前时间计算偏移量
+     */
+    private void computeOffsetByCurrentTime() {
+        if (TextUtils.isEmpty(currentTime)) {
+            return;
+        }
+        String[] timeAttr = currentTime.split(":");
+        if (timeAttr.length != 3) {
+            return;
+        }
+        for (String seg : timeAttr) {
+            if (TextUtils.isEmpty(seg) || !(seg.length() == 1 || seg.length() == 2)) {
+                return;
+            }
+        }
+        String hours = timeAttr[0];
+        String minutes = timeAttr[1];
+        String seconds = timeAttr[2];
+        long timeSeconds = Integer.parseInt(hours) * 60 * 60 + Integer.parseInt(minutes) * 60 + Integer.parseInt(seconds);
+        long timeOffset = defaultTimeSeconds - timeSeconds;
+        offset = ((timeOffset * 1.0f)/totalSeconds) * mainBlockWidth;
+    }
+
+    /**
+     * 响应点击
+     */
+    private void handleClick() {
+        computeOffsetByClickPosition();
+        requestInvalidate("click");
+
+    }
+
+    /**
+     * 计算按下的x坐标是否在主面板内
+     */
+    private boolean xInsideMainBlock(float x) {
+        return x >= mainBlockLeft && x <= mainBlockRight;
+    }
+
+    /**
+     * 计算按下的y坐标是否在主面板内
+     */
+    private boolean yInsideMainBlock(float y) {
+        float minClickableY = halfHeightPlus;
+        float maxClickableY = halfHeightPlus + mainBlockHeight;
+        return y >= minClickableY && y <= maxClickableY;
+    }
+
+    /**
+     * 计算按下的区域是否在主面板内
+     */
+    private boolean insideMainBlock(float x, float y) {
+        return xInsideMainBlock(x) && yInsideMainBlock(y);
+    }
+
+    /**
+     * 重绘视图
      */
     private void requestInvalidate(String tag) {
         float maxOffset = mainBlockWidth/2;
@@ -362,7 +449,7 @@ public class XMTimeLineView extends HorizontalScrollView {
     }
 
     /**
-     * 计算当前指示的时间
+     * 根据当前偏移量计算指示的时间
      */
     private void computeCurrentTime() {
         //计算时间偏移的秒数
@@ -462,5 +549,22 @@ public class XMTimeLineView extends HorizontalScrollView {
      */
     public float getmHeight() {
         return mHeight;
+    }
+
+    /**
+     * 设置当前时间
+     */
+    public void setCurrentTime(String currentTime) {
+        this.currentTime = currentTime;
+        computeOffsetByCurrentTime();
+        requestInvalidate("setCurrentTime");
+
+    }
+
+    /**
+     * 获取当前时间
+     */
+    public String getCurrentTime() {
+        return currentTime;
     }
 }
